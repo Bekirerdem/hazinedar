@@ -1,0 +1,15 @@
+{
+  "name": "hazinedar-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Otonom hazinedar agent: FX-zamanlama karari + bounded odeme orkestrasyonu",
+  "scripts": {
+    "test": "node --test",
+    "backtest": "node src/backtest/run.ts",
+    "agent": "node src/index.ts"
+  },
+  "dependencies": {
+    "@stellar/stellar-sdk": "^15.1.0"
+  }
+}
