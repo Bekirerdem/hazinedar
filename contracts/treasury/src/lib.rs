@@ -2,10 +2,11 @@
 //! Non-custodial isletme hazine kontrati.
 //!
 //! Isletmenin USDC'si bu kontratin kendi adresinde durur. Iki rol var:
-//! - `owner` (isletme): tam yetki, fonlari her an cekebilir (`withdraw`), policy belirler.
+//! - `owner` (isletme): tam yetki, fonlari her an cekebilir (`withdraw`), policy belirler,
+//!   agent'i degistirebilir (`set_agent` = recoverability), acil durdurabilir (`pause`).
 //! - `agent` (otonom yazilim): SADECE policy sinirlari icinde odeme yapabilir
-//!   (whitelist'teki tedarikciye + gunluk limit dahilinde). Policy disini cagiramaz;
-//!   kontrat panic eder. Boylece "guven koda ait" (contract-as-trust) saglanir.
+//!   (whitelist'teki tedarikciye + gunluk limit dahilinde, paused degilken). Policy disini
+//!   cagiramaz; kontrat panic eder. Boylece "guven koda ait" (contract-as-trust) saglanir.
 use soroban_sdk::{contract, contractimpl, contracttype, token, Address, Env, Vec};
 
 /// Agent'in uyacagi kurallar. Owner belirler.
@@ -16,7 +17,7 @@ pub struct Policy {
     pub daily_limit: i128,
     /// Agent'in odeme yapabilecegi izinli alici adresleri (tedarikciler).
     pub whitelist: Vec<Address>,
-    /// FX cevirmede izin verilen azami sapma (basis points). (convert asamasinda kullanilir)
+    /// FX cevirmede izin verilen azami sapma (basis points).
     pub max_slippage_bps: u32,
 }
 
@@ -28,6 +29,8 @@ pub enum DataKey {
     Policy,
     /// Gun indeksine gore agent'in o gun harcadigi tutar.
     SpentDay(u64),
+    /// Acil durdurma bayragi (kill switch).
+    Paused,
 }
 
 #[contract]
@@ -49,10 +52,31 @@ impl Treasury {
         env.storage().instance().set(&DataKey::Policy, &policy);
     }
 
+    /// Owner agent'i degistirir (recoverability: agent ele gecer/kaybolursa kurtarma).
+    pub fn set_agent(env: &Env, new_agent: Address) {
+        Self::owner(env).require_auth();
+        env.storage().instance().set(&DataKey::Agent, &new_agent);
+    }
+
+    /// Owner acil durdurma (kill switch): paused iken agent odeme yapamaz.
+    pub fn pause(env: &Env) {
+        Self::owner(env).require_auth();
+        env.storage().instance().set(&DataKey::Paused, &true);
+    }
+
+    /// Owner durdurmayi kaldirir.
+    pub fn unpause(env: &Env) {
+        Self::owner(env).require_auth();
+        env.storage().instance().set(&DataKey::Paused, &false);
+    }
+
     /// Agent, whitelist'teki bir tedarikciye gunluk limit dahilinde USDC oder.
     /// Policy disi her cagri panic eder (bounded agent garantisi).
     pub fn agent_pay(env: &Env, supplier: Address, amount: i128) {
         Self::agent(env).require_auth();
+        if Self::is_paused(env) {
+            panic!("treasury paused");
+        }
         if amount <= 0 {
             panic!("amount must be positive");
         }
@@ -95,6 +119,11 @@ impl Treasury {
     /// Agent'in bugun harcadigi toplam.
     pub fn spent_today(env: &Env) -> i128 {
         Self::spent_of(env, env.ledger().timestamp() / 86_400)
+    }
+
+    /// Acil durdurma durumu.
+    pub fn is_paused(env: &Env) -> bool {
+        env.storage().instance().get(&DataKey::Paused).unwrap_or(false)
     }
 
     pub fn policy(env: &Env) -> Policy {

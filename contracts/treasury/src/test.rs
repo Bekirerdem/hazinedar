@@ -79,3 +79,29 @@ fn daily_limit_accumulates_across_payments() {
     ctx.client.agent_pay(&ctx.supplier, &400); // toplam 1000 == limit, gecmeli
     assert_eq!(ctx.client.spent_today(), 1_000);
 }
+
+#[test]
+fn owner_can_pause_and_unpause() {
+    let ctx = setup();
+    assert_eq!(ctx.client.is_paused(), false);
+    ctx.client.pause();
+    assert_eq!(ctx.client.is_paused(), true);
+    ctx.client.unpause();
+    assert_eq!(ctx.client.is_paused(), false);
+}
+
+#[test]
+#[should_panic(expected = "paused")]
+fn paused_blocks_agent_pay() {
+    let ctx = setup();
+    ctx.client.pause();
+    ctx.client.agent_pay(&ctx.supplier, &100); // paused -> reddedilmeli
+}
+
+#[test]
+fn owner_can_rotate_agent_recoverability() {
+    let ctx = setup();
+    let new_agent = Address::generate(&ctx.env);
+    ctx.client.set_agent(&new_agent);
+    assert_eq!(ctx.client.agent(), new_agent);
+}
