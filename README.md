@@ -55,6 +55,7 @@ Hazinedar gives the business an **autonomous treasurer**:
 1. **Autonomous actions:** the agent reads the on-chain rate, decides when to convert (FX-timing within the payment window), and executes the supplier payment — no per-transaction human approval.
 2. **Safeguards:** every agent action is bounded by an on-chain `policy` (daily spend limit + supplier whitelist) enforced by the contract; the owner can withdraw at any time. The demo shows the contract *rejecting* an out-of-policy payment live.
 3. **Why Stellar:** anchor network (last-mile cash-out to banks), native path-payment FX, and sub-cent fees make machine-speed cross-border treasury economical.
+4. **Agent identity (ERC-8004):** the agent is registered on the on-chain **ERC-8004 Identity Registry** (testnet, agent #1) — on-chain identity + reputation infrastructure using a Stellar ecosystem standard.
 
 ## Live on testnet
 

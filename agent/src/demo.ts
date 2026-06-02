@@ -8,6 +8,7 @@ import { decideConversion } from "./strategy.ts";
 import { fetchLiveUsdTry } from "./backtest/fetchRates.ts";
 import deployed from "../../demo/deployed.json" with { type: "json" };
 import report from "../backtest-report.json" with { type: "json" };
+import id8004 from "../../demo/8004.json" with { type: "json" };
 
 const agent = Keypair.fromSecret(process.env.AGENT_SECRET!);
 const admin = Keypair.fromSecret(process.env.ALICE_SECRET!);
@@ -20,6 +21,7 @@ const tl = (n: number) => n.toLocaleString("tr-TR", { maximumFractionDigits: 0 }
 
 console.log("══════════════════════════════════════════════════");
 console.log("  HAZINEDAR — Bursa tekstil ithalatcisi (canli demo)");
+console.log(`  ERC-8004 kimligi: agent #${id8004.agentId} (on-chain Identity Registry)`);
 console.log("══════════════════════════════════════════════════\n");
 
 // 0) Hazine durumu
