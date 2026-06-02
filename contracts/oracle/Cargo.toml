@@ -1,0 +1,21 @@
+[package]
+name = "oracle"
+description = "SEP-40 uyumlu minimal fiyat oracle (USDTRY feed; production'da Reflector ile aynı arayuz)"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+version.workspace = true
+
+[package.metadata.stellar]
+cargo_inherit = true
+
+[lib]
+crate-type = ["cdylib"]
+doctest = false
+
+[dependencies]
+soroban-sdk = { workspace = true }
+
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }
