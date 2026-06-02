@@ -117,3 +117,13 @@ export async function agentPay(
   );
   return submit(op, agent, "agent_pay");
 }
+
+/** Owner-yetkili arg'siz cagri (pause / unpause). tx hash doner. */
+export async function ownerCall(
+  treasuryId: string,
+  owner: Keypair,
+  method: string,
+): Promise<string> {
+  const contract = new Contract(treasuryId);
+  return submit(contract.call(method), owner, method);
+}

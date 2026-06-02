@@ -3,7 +3,7 @@
  * Calistir: agent/ dizininde `node --env-file=.env src/demo.ts`
  */
 import { Keypair } from "@stellar/stellar-sdk";
-import { readView, readUsdTry, pushRate, agentPay } from "./stellarClient.ts";
+import { readView, readUsdTry, pushRate, agentPay, ownerCall } from "./stellarClient.ts";
 import { decideConversion } from "./strategy.ts";
 import { fetchLiveUsdTry } from "./backtest/fetchRates.ts";
 import deployed from "../../demo/deployed.json" with { type: "json" };
@@ -50,19 +50,30 @@ console.log(`[3] Tedarikciye 1000 USDC odeniyor (whitelist + limit ICINDE)...`);
 const hash = await agentPay(treasury, agent, supplier, 1000n * USDC);
 console.log(`    BASARILI -> https://stellar.expert/explorer/testnet/tx/${hash}\n`);
 
-// 4) GUVENLIK: whitelist DISI birine odeme -> kontrat reddetmeli
+// 4) GUVENLIK 1: whitelist DISI birine odeme -> kontrat reddetmeli
 const stranger = Keypair.random().publicKey();
-console.log(`[4] GUVENLIK TESTI: agent whitelist-DISI bir adrese odeme deniyor...`);
+console.log(`[4] GUVENLIK 1 (whitelist): agent whitelist-DISI bir adrese odeme deniyor...`);
 try {
   await agentPay(treasury, agent, stranger, 1000n * USDC);
   console.log(`    !! BEKLENMEDIK: islem gecti (hata)`);
 } catch {
-  console.log(`    KONTRAT REDDETTI. Agent kotu niyetli olsa bile parayi kaciramaz.`);
-  console.log(`    -> "Guven bize degil, koda ait." (non-custodial)\n`);
+  console.log(`    KONTRAT REDDETTI. Agent whitelist disina odeyemez.\n`);
 }
 
-// 5) Backtest ozeti (gercek 1 yil USD/TRY)
-console.log(`[5] Backtest (gercek 1 yil USD/TRY, ${report.paymentCount} odeme):`);
+// 5) GUVENLIK 2: owner acil durdurma (pause kill-switch) -> agent odeyemez -> unpause
+console.log(`[5] GUVENLIK 2 (kill-switch): owner acil durdurma (pause)...`);
+await ownerCall(treasury, admin, "pause");
+try {
+  await agentPay(treasury, agent, supplier, 1n * USDC);
+  console.log(`    !! BEKLENMEDIK: paused iken odeme gecti`);
+} catch {
+  console.log(`    pause AKTIF -> agent odeyemiyor. Owner istedigi an durdurabilir/agent'i degistirebilir.`);
+}
+await ownerCall(treasury, admin, "unpause");
+console.log(`    unpause -> normale dondu. "Guven bize degil, koda ait." (non-custodial)\n`);
+
+// 6) Backtest ozeti (gercek 1 yil USD/TRY)
+console.log(`[6] Backtest (gercek 1 yil USD/TRY, ${report.paymentCount} odeme):`);
 console.log(`    Naive'e karsi tasarruf: ${tl(report.totalSavingTRY)} TL (%${report.savingPct.toFixed(2)})`);
 console.log(`    = makas ${tl(report.spreadSavingTRY)} TL + zamanlama ${tl(report.timingGainTRY)} TL`);
 console.log("\n══════════════════════════════════════════════════");
